@@ -777,6 +777,199 @@ Exceptions bubble up the call stack until caught. Avoid using them for flow cont
 
 ✅ End of Stage 3.
 
+# C# Mastery Guide – Stage 4: File I/O, JSON/XML, Logging & CLI Apps
+
+Welcome to Stage 4 of mastering C#! This section focuses on **practical application development** features. You’ll learn how to handle files, work with structured data formats, log activity, and build command-line tools.
+
+---
+
+## 🟦 1. File I/O (Reading and Writing Files)
+
+### ✅ What:
+Use classes in `System.IO` to read/write data from/to text and binary files.
+
+### ❓ Why:
+File handling is crucial for config files, data import/export, logs, etc.
+
+### ⚙️ Syntax:
+```csharp
+File.WriteAllText("file.txt", "Hello");
+string content = File.ReadAllText("file.txt");
+```
+
+### 🔧 Examples:
+```csharp
+// Write lines
+string[] lines = { "Line 1", "Line 2" };
+File.WriteAllLines("output.txt", lines);
+
+// Read lines
+foreach (var line in File.ReadLines("output.txt"))
+    Console.WriteLine(line);
+
+// Append
+File.AppendAllText("output.txt", "\nAppended");
+```
+
+### 🔗 Related:
+`StreamReader`, `StreamWriter`, `FileStream`, `Directory`, `Path`
+
+### 🧠 Deep Insight:
+Use `using` with `StreamReader`/`StreamWriter` to handle streams safely and prevent file locks.
+
+---
+
+## 🟦 2. JSON Handling (Serialization/Deserialization)
+
+### ✅ What:
+Convert between JSON strings and C# objects using `System.Text.Json` or `Newtonsoft.Json`.
+
+### ❓ Why:
+JSON is a standard for config, APIs, and inter-process communication.
+
+### ⚙️ Syntax:
+```csharp
+string json = JsonSerializer.Serialize(obj);
+MyClass obj = JsonSerializer.Deserialize<MyClass>(json);
+```
+
+### 🔧 Example:
+```csharp
+public class Person
+{
+  public string Name { get; set; }
+  public int Age { get; set; }
+}
+
+Person p = new Person { Name = "Alice", Age = 25 };
+string json = JsonSerializer.Serialize(p);
+Console.WriteLine(json); // {"Name":"Alice","Age":25}
+
+Person p2 = JsonSerializer.Deserialize<Person>(json);
+```
+
+### 🔗 Related:
+`System.Text.Json`, `Newtonsoft.Json`, `JsonSerializerOptions`
+
+### 🧠 Deep Insight:
+JsonSerializer uses reflection. For high-performance APIs, consider caching or source-generated serializers.
+
+---
+
+## 🟦 3. XML Handling
+
+### ✅ What:
+Work with XML using `System.Xml`, `XDocument`, and `XmlSerializer`.
+
+### ❓ Why:
+Legacy systems, config files, and many enterprise APIs still use XML.
+
+### ⚙️ Syntax:
+```csharp
+XDocument doc = XDocument.Load("data.xml");
+string name = doc.Root.Element("Name").Value;
+```
+
+### 🔧 Example:
+```csharp
+XElement xml = new XElement("Person",
+  new XElement("Name", "Bob"),
+  new XElement("Age", 30));
+xml.Save("person.xml");
+
+XDocument loaded = XDocument.Load("person.xml");
+Console.WriteLine(loaded.Root.Element("Name").Value);
+```
+
+### 🔗 Related:
+`XElement`, `XmlReader`, `XmlWriter`, `XmlSerializer`
+
+### 🧠 Deep Insight:
+LINQ to XML provides an elegant way to traverse and manipulate XML trees with C# syntax.
+
+---
+
+## 🟦 4. Logging (Using Serilog)
+
+### ✅ What:
+Logging provides insights during development and production.
+
+### ❓ Why:
+Used for debugging, monitoring, error tracking, and auditing.
+
+### ⚙️ Serilog Setup:
+```bash
+Install-Package Serilog
+Install-Package Serilog.Sinks.File
+```
+
+### 🔧 Example:
+```csharp
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("app.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+Log.Information("Application started");
+Log.Error("Something went wrong");
+```
+
+### 🔗 Related:
+`NLog`, `ILogger`, `Microsoft.Extensions.Logging`
+
+### 🧠 Deep Insight:
+Use structured logging (`Log.Information("User {User} logged in", userId)`) for better querying.
+
+---
+
+## 🟦 5. Creating a CLI App
+
+### ✅ What:
+Build a command-line tool using `Main()` as the entry point.
+
+### ❓ Why:
+Used for utilities, scripts, DevOps tools, automation, etc.
+
+### ⚙️ Syntax:
+```csharp
+static void Main(string[] args)
+{
+    Console.WriteLine("Hello CLI");
+    if (args.Length > 0)
+        Console.WriteLine($"Received: {args[0]}");
+}
+```
+
+### 🔧 Example:
+```csharp
+// Save this as Program.cs and run:
+// dotnet run Hello
+
+static void Main(string[] args)
+{
+  if (args.Length == 0)
+  {
+    Console.WriteLine("Usage: mytool <name>");
+    return;
+  }
+  Console.WriteLine($"Hello, {args[0]}!");
+}
+```
+
+### 🔗 Related:
+`Environment`, `Process`, `args`, `CommandLineParser` (NuGet)
+
+### 🧠 Deep Insight:
+Use libraries like `System.CommandLine` for complex argument parsing and interactive CLI design.
+
+---
+
+✅ End of Stage 4.
+
+
+
 
 
 
