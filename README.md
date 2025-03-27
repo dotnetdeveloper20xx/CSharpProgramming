@@ -2604,6 +2604,163 @@ if (await featureManager.IsEnabledAsync("EnableBetaFeature"))
 - 🧬 Multi-tenant ready via custom header and DI
 - 🎛️ Feature flags via config or LaunchDarkly
 
+# 📦 Clean Architecture Web API – Full Solution + 🔐 Auth + ☁️ Azure + 🧬 Multi-Tenant + Feature Flags + 📘 Tenant-Aware DB + 🧪 E2E Tenant Tests
+
+This extended guide includes:
+- ✅ Identity + IdentityServer
+- 🔐 JWT Auth + Roles
+- 🧬 Multi-tenant strategy
+- 🎛️ Feature flag toggles
+- 📘 Tenant-aware database context
+- 🧪 E2E testing with custom headers
+
+---
+
+## 📘 Full Multi-Tenant Support
+
+### ✅ Custom Tenant Model
+```csharp
+public class Tenant
+{
+    public string Id { get; set; }  // e.g. "tenant-a"
+    public string Name { get; set; }
+    public string ConnectionString { get; set; }
+}
+```
+
+### ✅ Tenant Store (In-Memory or from DB)
+```csharp
+public interface ITenantStore
+{
+    Tenant GetTenant(string tenantId);
+}
+
+public class InMemoryTenantStore : ITenantStore
+{
+    private static readonly List<Tenant> _tenants = new()
+    {
+        new Tenant { Id = "tenant-a", Name = "Tenant A", ConnectionString = "Server=...;Database=TenantA;..." },
+        new Tenant { Id = "tenant-b", Name = "Tenant B", ConnectionString = "Server=...;Database=TenantB;..." },
+    };
+
+    public Tenant GetTenant(string tenantId) => _tenants.FirstOrDefault(t => t.Id == tenantId);
+}
+```
+
+### ✅ Tenant Middleware
+```csharp
+public class TenantMiddleware : IMiddleware
+{
+    private readonly ITenantStore _store;
+    public TenantMiddleware(ITenantStore store) => _store = store;
+
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        var tenantId = context.Request.Headers["X-Tenant-ID"].FirstOrDefault();
+        var tenant = _store.GetTenant(tenantId ?? "default");
+        if (tenant == null)
+        {
+            context.Response.StatusCode = 400;
+            await context.Response.WriteAsync("Invalid tenant ID");
+            return;
+        }
+        context.Items["Tenant"] = tenant;
+        await next(context);
+    }
+}
+```
+
+### ✅ Tenant-Aware DbContext
+```csharp
+public class MultiTenantDbContext : DbContext
+{
+    private readonly IHttpContextAccessor _accessor;
+    private readonly ITenantStore _store;
+    private string _connectionString;
+
+    public MultiTenantDbContext(DbContextOptions<MultiTenantDbContext> options,
+                                IHttpContextAccessor accessor,
+                                ITenantStore store)
+        : base(options)
+    {
+        _accessor = accessor;
+        _store = store;
+        var tenantId = _accessor.HttpContext?.Items["Tenant"] as Tenant;
+        _connectionString = tenantId?.ConnectionString;
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!string.IsNullOrEmpty(_connectionString))
+            optionsBuilder.UseSqlServer(_connectionString);
+    }
+
+    public DbSet<Product> Products => Set<Product>();
+}
+```
+
+### ✅ Register Services
+```csharp
+builder.Services.AddSingleton<ITenantStore, InMemoryTenantStore>();
+builder.Services.AddTransient<TenantMiddleware>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddDbContext<MultiTenantDbContext>();
+```
+```csharp
+app.UseMiddleware<TenantMiddleware>();
+```
+
+---
+
+## 🧪 Per-Tenant E2E Test Example
+```csharp
+public class TenantProductTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly HttpClient _client;
+
+    public TenantProductTests(WebApplicationFactory<Program> factory)
+    {
+        _client = factory.CreateClient();
+    }
+
+    [Fact]
+    public async Task CanCreateProduct_For_TenantA()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/products");
+        request.Headers.Add("X-Tenant-ID", "tenant-a");
+        request.Content = JsonContent.Create(new { name = "Tenant A Product" });
+
+        var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Tenant A Product", body);
+    }
+
+    [Fact]
+    public async Task ShouldReject_UnknownTenant()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/products");
+        request.Headers.Add("X-Tenant-ID", "unknown");
+        request.Content = JsonContent.Create(new { name = "Invalid" });
+
+        var response = await _client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+}
+```
+
+---
+
+## ✅ Summary
+You now have:
+- 🧬 Multi-tenant request pipeline
+- 🛢️ Tenant-aware DbContext with per-tenant connection strings
+- 🔗 Middleware that validates `X-Tenant-ID`
+- 🧪 E2E test cases with tenant headers
+
+
+
 
 
 
