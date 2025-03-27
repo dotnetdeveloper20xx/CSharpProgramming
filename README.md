@@ -2468,6 +2468,143 @@ Use `[Authorize(Roles = "Admin")]` in controllers to restrict endpoint access.
 - ✅ GitHub Actions CI/CD with Azure push
 - ✅ Docker build file ready
 
+# 📦 Clean Architecture Web API – Full Solution + 🔐 Auth + ☁️ Azure + 🧬 Multi-Tenant + Feature Flags
+
+This extended guide adds enterprise-grade features to your solution:
+- ✅ ASP.NET Core Identity integration
+- 🔐 IdentityServer support
+- 🧬 Multi-tenant strategy
+- 🎛️ Feature flag toggles using config or LaunchDarkly
+
+---
+
+## 🔐 ASP.NET Core Identity Integration
+
+### 📦 Install Identity
+```bash
+Install-Package Microsoft.AspNetCore.Identity.EntityFrameworkCore
+```
+
+### 🧱 Identity Models
+```csharp
+public class ApplicationUser : IdentityUser {}
+public class ApplicationRole : IdentityRole {}
+```
+
+### 🏗️ Modify DbContext
+```csharp
+public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>, IAppDbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+    public DbSet<Product> Products => Set<Product>();
+}
+```
+
+### 🔌 Program.cs Setup
+```csharp
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+```
+
+---
+
+## 🔐 IdentityServer Setup
+
+### 📦 Install Packages
+```bash
+Install-Package Duende.IdentityServer.AspNetIdentity
+Install-Package Duende.IdentityServer.EntityFramework
+```
+
+> Note: IdentityServer is a commercial offering from Duende Software as of .NET 6+
+
+Configure clients, scopes, users, and resources via `Config.cs`. Run it as a separate Identity Server project (e.g., `MyApp.Identity`).
+
+Use token issuance from IdentityServer and validate JWT in your API with:
+```csharp
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", options =>
+    {
+        options.Authority = "https://localhost:5001";
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = false
+        };
+    });
+```
+
+---
+
+## 🧬 Multi-Tenant Support (Basic Strategy)
+
+### 📦 Tenant Middleware
+```csharp
+public class TenantMiddleware : IMiddleware
+{
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        var tenantId = context.Request.Headers["X-Tenant-ID"].FirstOrDefault();
+        context.Items["TenantId"] = tenantId ?? "default";
+        await next(context);
+    }
+}
+```
+
+### 🛠 Register Middleware
+```csharp
+builder.Services.AddTransient<TenantMiddleware>();
+app.UseMiddleware<TenantMiddleware>();
+```
+
+### 🧠 Access Tenant in Service
+```csharp
+var tenantId = httpContextAccessor.HttpContext?.Items["TenantId"]?.ToString();
+```
+
+---
+
+## 🎛️ Feature Flag Toggle (Using `IConfiguration`)
+
+### 📁 appsettings.json
+```json
+{
+  "Features": {
+    "EnableBetaFeature": true
+  }
+}
+```
+
+### 🧪 Feature Check
+```csharp
+if (_config.GetValue<bool>("Features:EnableBetaFeature"))
+{
+    // Run beta logic
+}
+```
+
+### 🎯 Optional: LaunchDarkly/Feature Management
+```bash
+Install-Package Microsoft.FeatureManagement
+```
+```csharp
+services.AddFeatureManagement();
+```
+```csharp
+if (await featureManager.IsEnabledAsync("EnableBetaFeature"))
+{
+    // Feature gated code
+}
+```
+
+---
+
+## ✅ Summary
+- 🔐 ASP.NET Core Identity + IdentityServer for enterprise auth
+- 🧬 Multi-tenant ready via custom header and DI
+- 🎛️ Feature flags via config or LaunchDarkly
+
+
 
 
 
