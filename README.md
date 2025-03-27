@@ -2760,6 +2760,117 @@ You now have:
 - 🧪 E2E test cases with tenant headers
 
 
+# ☁️ Clean Architecture Web API – Tenant Deployment, Claims-based Identity, and Per-Tenant Control
+
+This section enhances your multi-tenant Clean Architecture Web API with:
+- ☁️ Azure App Service slot/container deployment per tenant
+- 🔐 Claim-based tenant-aware JWT tokens
+- 📦 Per-tenant caching, throttling, and usage tracking
+
+---
+
+## ☁️ Tenant Deployment: Azure Slots or Containers
+
+### 🎯 Approach 1: Deployment Slots (Per Tenant)
+- Create separate **slots** under one Azure App Service:
+  - `tenant-a.myapp.azurewebsites.net`
+  - `tenant-b.myapp.azurewebsites.net`
+- Use deployment profiles and GitHub Actions workflows to deploy per slot:
+```yaml
+- name: Deploy to Tenant A Slot
+  uses: azure/webapps-deploy@v2
+  with:
+    app-name: myapp-api
+    slot-name: tenant-a
+    publish-profile: ${{ secrets.AZURE_SLOT_TENANT_A }}
+    package: ./publish
+```
+
+### 🐳 Approach 2: Containerized Per Tenant
+- Build Docker images for each tenant (e.g. `myapp/tenant-a:latest`)
+- Deploy to Azure App Service for Containers or Azure Container Apps
+```yaml
+docker build -t myapp/tenant-a -f Dockerfile .
+docker tag myapp/tenant-a registry.azurecr.io/myapp/tenant-a
+az acr login --name youracr
+az acr repository list --name youracr
+```
+
+---
+
+## 🔐 Claim-Based Tenant Identity in JWT
+
+### Step 1: Add `tenant_id` claim to JWT during authentication
+```csharp
+var claims = new List<Claim>
+{
+    new Claim(ClaimTypes.Name, user.UserName),
+    new Claim("tenant_id", user.TenantId),
+    new Claim(ClaimTypes.Role, "Admin")
+};
+```
+
+### Step 2: Enforce tenant in services using claim
+```csharp
+var tenantId = _httpContextAccessor.HttpContext?.User?.FindFirst("tenant_id")?.Value;
+```
+
+### Step 3: Protect against cross-tenant access
+In service logic or repository layer:
+```csharp
+if (currentTenantId != entity.TenantId)
+    throw new UnauthorizedAccessException("Cross-tenant access is not allowed");
+```
+
+---
+
+## 📦 Per-Tenant Caching, Throttling, and Usage Tracking
+
+### ✅ MemoryCache with Tenant Key Prefix
+```csharp
+string cacheKey = $"{tenantId}_products";
+var products = _cache.GetOrCreate(cacheKey, entry =>
+{
+    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+    return _dbContext.Products.Where(p => p.TenantId == tenantId).ToList();
+});
+```
+
+### ✅ Rate Limiting per Tenant
+Use `AspNetCoreRateLimit`:
+```bash
+Install-Package AspNetCoreRateLimit
+```
+Configure `appsettings.json`:
+```json
+{ "IpRateLimiting": {
+  "EnableEndpointRateLimiting": true,
+  "GeneralRules": [
+    { "Endpoint": "*", "Period": "1m", "Limit": 60 }
+  ]
+}}
+```
+Create rule per `X-Tenant-ID` using custom `IRateLimitConfiguration` logic.
+
+### ✅ Usage Analytics
+Use Application Insights or store per-tenant usage logs:
+```csharp
+_logger.LogInformation("[Tenant: {TenantId}] Product listed", tenantId);
+```
+Or log to:
+```csharp
+_dbContext.UsageLogs.Add(new UsageLog { TenantId = tenantId, Action = "Viewed", Timestamp = DateTime.UtcNow });
+```
+
+---
+
+## ✅ Summary
+You now support:
+- ☁️ Per-tenant deployments (slots or containers)
+- 🔐 JWT tokens with `tenant_id` claim
+- 📦 Scalable multi-tenant cache, throttle, and usage tracking
+
+
 
 
 
