@@ -1985,16 +1985,102 @@ builder.Services.AddHostedService<CleanupService>();
 
 ---
 
-## ✅ Summary
-You now have:
+# 📁 Clean Architecture Project Folder Structure + 🧪 Interview Challenges
 
-- 💡 Full Clean Architecture structure
-- 🧠 Advanced EF Core, Validation, CQRS
-- 🔒 JWT Auth, Caching, Background Services
-- 🧪 Unit Testing and Global Error Handling
-- 🔁 Async Streams and Response Wrappers
+This document outlines a production-ready folder/file structure for a full Clean Architecture Web API application using .NET 7+, plus senior-level interview questions based on each module and concept.
 
-You're building like a senior .NET developer.
+---
+
+## 📂 Project Folder Layout
+```
+MyApp
+│
+├── MyApp.Domain
+│   └── Entities
+│       └── Product.cs
+│
+├── MyApp.Application
+│   ├── DTOs
+│   │   └── ProductDto.cs
+│   ├── Interfaces
+│   │   └── IAppDbContext.cs
+│   ├── Commands
+│   │   └── CreateProductCommand.cs
+│   ├── Queries
+│   │   └── GetProductByIdQuery.cs
+│   └── Validators
+│       └── ProductValidator.cs
+│
+├── MyApp.Infrastructure
+│   ├── Persistence
+│   │   └── AppDbContext.cs
+│   └── Services
+│       └── JwtTokenService.cs (optional)
+│
+├── MyApp.WebAPI
+│   ├── Controllers
+│   │   └── ProductsController.cs
+│   ├── Middleware
+│   │   └── ExceptionMiddleware.cs
+│   ├── Program.cs
+│   └── appsettings.json
+│
+├── MyApp.Tests
+│   └── Application
+│       └── Handlers
+│           └── CreateProductHandlerTests.cs
+│
+└── MyApp.sln
+```
+
+---
+
+## 🧪 Senior-Level Interview Challenges by Module
+
+### 🔹 Clean Architecture
+**Q:** Explain the dependency flow in Clean Architecture. Why should the Domain project have no dependencies?
+**Q:** How would you structure a feature module that interacts with external APIs while preserving Clean Architecture?
+
+### 🔹 CQRS & MediatR
+**Q:** What are the benefits of separating Commands and Queries in a complex domain?
+**Q:** How would you handle validation and authorization inside a MediatR pipeline?
+
+### 🔹 EF Core & Fluent API
+**Q:** How do you enforce multi-field uniqueness in EF Core without annotations?
+**Q:** What is the purpose of `AsNoTracking()`? When should it be used?
+
+### 🔹 FluentValidation
+**Q:** How would you write a validator for a nested object or collection?
+**Q:** What are the benefits of using FluentValidation over manual model validation?
+
+### 🔹 Exception Middleware
+**Q:** How do you log exceptions globally while keeping your API secure?
+**Q:** How would you structure your middleware to return RFC7807 ProblemDetails responses?
+
+### 🔹 AutoMapper
+**Q:** How can you configure conditional mapping in AutoMapper?
+**Q:** How do you map between two deeply nested object trees?
+
+### 🔹 JWT Authentication
+**Q:** How do you secure a multi-tenant API using JWT claims?
+**Q:** How would you handle token expiration and refresh securely?
+
+### 🔹 Caching
+**Q:** How would you use MemoryCache with expiration policies?
+**Q:** When should you prefer distributed caching (like Redis) over in-memory caching?
+
+### 🔹 Background Jobs
+**Q:** When would you use `IHostedService` vs. a message queue background worker?
+**Q:** How can you safely retry failed background jobs?
+
+### 🔹 Testing (xUnit + Moq)
+**Q:** How do you mock DbSet in EF Core for testing?
+**Q:** How do you test async exception scenarios?
+
+---
+
+
+
 
 
 
