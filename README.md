@@ -1177,6 +1177,241 @@ Use `try/catch` inside or around `await`. `AggregateException` is common when us
 
 ✅ End of Stage 5.
 
+# C# Mastery Guide – Stage 6: .NET Projects – Web APIs, EF Core, Testing, and DI
+
+Welcome to Stage 6! Now that you've mastered core C# concepts, it's time to apply your skills by building **real-world applications** using .NET. This stage will cover:
+
+- ✅ Creating ASP.NET Core Web APIs
+- ✅ Using Entity Framework Core (EF Core)
+- ✅ Applying Dependency Injection (DI)
+- ✅ Writing Unit Tests
+- ✅ Using Middleware, Filters, and Logging
+
+---
+
+## 🟦 1. ASP.NET Core Web API Basics
+
+### ✅ What:
+Framework for building HTTP-based services using REST principles.
+
+### ❓ Why:
+Used for scalable, modular web apps, mobile backends, microservices, and APIs.
+
+### ⚙️ Startup Template:
+```bash
+dotnet new webapi -n MyApi
+cd MyApi
+dotnet run
+```
+
+### 🔧 Example: Controller
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    [HttpGet]
+    public IActionResult GetAll() => Ok(new[] { "Apple", "Banana" });
+
+    [HttpPost]
+    public IActionResult Create(string product) => Created("/api/products/1", product);
+}
+```
+
+### 🔗 Related:
+`[ApiController]`, `IActionResult`, `Model Binding`, `Routing`, `Swagger`
+
+### 🧠 Insight:
+Controllers are discovered via conventions. ASP.NET Core supports OpenAPI via Swashbuckle for docs.
+
+---
+
+## 🟦 2. Entity Framework Core (EF Core)
+
+### ✅ What:
+Object-relational mapper (ORM) to work with databases using C# objects.
+
+### ❓ Why:
+Simplifies CRUD operations, migrations, and relationship handling without raw SQL.
+
+### ⚙️ Setup:
+```bash
+Install-Package Microsoft.EntityFrameworkCore.SqlServer
+Install-Package Microsoft.EntityFrameworkCore.Tools
+```
+
+### 🔧 Example:
+```csharp
+public class AppDbContext : DbContext
+{
+    public DbSet<Product> Products { get; set; }
+    public AppDbContext(DbContextOptions options) : base(options) { }
+}
+
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+}
+```
+
+### Program.cs Setup
+```csharp
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+```
+
+### 🔗 Related:
+`DbContext`, `DbSet`, `Migrations`, `LINQ`, `Fluent API`, `Seed Data`
+
+### 🧠 Insight:
+EF Core tracks entity states to generate SQL. Use `AsNoTracking()` for read-only queries to boost performance.
+
+---
+
+## 🟦 3. Dependency Injection (DI)
+
+### ✅ What:
+Technique to inject dependencies (services) instead of hard-coding them.
+
+### ❓ Why:
+Promotes testability, decouples components, and supports SOLID principles.
+
+### ⚙️ Syntax:
+```csharp
+public interface IMessageService
+{
+    string Send();
+}
+
+public class EmailService : IMessageService
+{
+    public string Send() => "Email sent";
+}
+```
+
+### Register in Program.cs
+```csharp
+builder.Services.AddScoped<IMessageService, EmailService>();
+```
+
+### Use in Controller
+```csharp
+public class NotifyController : ControllerBase
+{
+    private readonly IMessageService _service;
+    public NotifyController(IMessageService service) => _service = service;
+
+    [HttpGet] public string Notify() => _service.Send();
+}
+```
+
+### 🔗 Related:
+`AddScoped`, `AddSingleton`, `AddTransient`, `IServiceCollection`
+
+### 🧠 Insight:
+ASP.NET Core has built-in DI. Use `Scoped` for per-request, `Singleton` for app-wide, `Transient` for new instance every time.
+
+---
+
+## 🟦 4. Unit Testing with xUnit
+
+### ✅ What:
+xUnit is a testing framework for writing unit tests in .NET.
+
+### ❓ Why:
+Ensures your code behaves as expected and supports TDD (Test Driven Development).
+
+### ⚙️ Setup:
+```bash
+dotnet new xunit -n MyApp.Tests
+dotnet add reference ../MyApp/MyApp.csproj
+```
+
+### 🔧 Example:
+```csharp
+public class Calculator
+{
+    public int Add(int a, int b) => a + b;
+}
+
+public class CalculatorTests
+{
+    [Fact]
+    public void Add_ReturnsCorrectSum()
+    {
+        var calc = new Calculator();
+        Assert.Equal(5, calc.Add(2, 3));
+    }
+}
+```
+
+### 🔗 Related:
+`[Fact]`, `[Theory]`, `Assert`, `Mock`, `Arrange-Act-Assert`
+
+### 🧠 Insight:
+Use mocks for dependencies. Use `[Theory]` for parameterized tests.
+
+---
+
+## 🟦 5. Middleware, Filters & Logging
+
+### ✅ What:
+Middleware are components that handle requests/responses. Filters apply logic before/after actions. Logging tracks activity.
+
+### ❓ Why:
+Enhances security, monitoring, and request handling.
+
+### 🔧 Example Middleware:
+```csharp
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Request Incoming");
+    await next();
+    Console.WriteLine("Response Outgoing");
+});
+```
+
+### 🔧 Action Filter:
+```csharp
+public class LogActionFilter : IActionFilter
+{
+    public void OnActionExecuting(ActionExecutingContext context) => Console.WriteLine("Before");
+    public void OnActionExecuted(ActionExecutedContext context) => Console.WriteLine("After");
+}
+```
+
+### Register Filter:
+```csharp
+services.AddControllers(options =>
+{
+    options.Filters.Add<LogActionFilter>();
+});
+```
+
+### 🔧 Built-in Logging:
+```csharp
+public class MyController : ControllerBase
+{
+    private readonly ILogger<MyController> _logger;
+    public MyController(ILogger<MyController> logger) => _logger = logger;
+
+    [HttpGet] public IActionResult Get() { _logger.LogInformation("Called Get"); return Ok(); }
+}
+```
+
+### 🔗 Related:
+`ILogger`, `IMiddleware`, `IActionFilter`, `UseMiddleware`, `UseRouting`
+
+### 🧠 Insight:
+Middleware order matters! Always place exception handling and logging early in the pipeline.
+
+---
+
+✅ End of Stage 6.
+
+
+
 
 
 
