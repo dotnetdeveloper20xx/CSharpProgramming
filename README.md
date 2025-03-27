@@ -2079,6 +2079,174 @@ MyApp
 
 ---
 
+# 📦 Full .NET Solution with Ready-to-Run Files + 🧱 Swagger, JWT Auth, Docker Setup
+
+This guide helps you bootstrap a full Clean Architecture Web API project with:
+- ✅ Working .NET 7+ Solution
+- ✅ Swagger UI
+- 🔐 JWT Role-based Authentication
+- 🐳 Docker Support
+
+---
+
+## ✅ Step-by-Step Project Bootstrap (CLI)
+```bash
+dotnet new sln -n MyApp
+
+# Create projects
+cd MyApp
+
+dotnet new classlib -n MyApp.Domain
+
+dotnet new classlib -n MyApp.Application
+
+dotnet new classlib -n MyApp.Infrastructure
+
+dotnet new webapi -n MyApp.WebAPI
+
+dotnet new xunit -n MyApp.Tests
+
+# Add to solution
+dotnet sln add MyApp.Domain/MyApp.Domain.csproj
+
+dotnet sln add MyApp.Application/MyApp.Application.csproj
+
+dotnet sln add MyApp.Infrastructure/MyApp.Infrastructure.csproj
+
+dotnet sln add MyApp.WebAPI/MyApp.WebAPI.csproj
+
+dotnet sln add MyApp.Tests/MyApp.Tests.csproj
+
+# Add references
+cd MyApp.Application
+
+dotnet add reference ../MyApp.Domain/MyApp.Domain.csproj
+
+cd ../MyApp.Infrastructure
+
+dotnet add reference ../MyApp.Application/MyApp.Application.csproj
+
+dotnet add reference ../MyApp.Domain/MyApp.Domain.csproj
+
+cd ../MyApp.WebAPI
+
+dotnet add reference ../MyApp.Application/MyApp.Application.csproj
+
+dotnet add reference ../MyApp.Infrastructure/MyApp.Infrastructure.csproj
+```
+
+---
+
+## 🔍 Install Essential Packages
+```bash
+# CQRS
+Install-Package MediatR.Extensions.Microsoft.DependencyInjection
+
+# FluentValidation
+Install-Package FluentValidation.AspNetCore
+
+# EF Core
+Install-Package Microsoft.EntityFrameworkCore
+Install-Package Microsoft.EntityFrameworkCore.InMemory
+
+# JWT Auth
+Install-Package Microsoft.AspNetCore.Authentication.JwtBearer
+
+# Swagger
+Install-Package Swashbuckle.AspNetCore
+```
+
+---
+
+## 🧱 Swagger Configuration
+In `Program.cs` of `MyApp.WebAPI`:
+```csharp
+builder.Services.AddSwaggerGen(opt =>
+{
+    opt.SwaggerDoc("v1", new() { Title = "MyApp API", Version = "v1" });
+    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme."
+    });
+    opt.AddSecurityRequirement(new OpenApiSecurityRequirement {
+        {
+            new OpenApiSecurityScheme {
+                Reference = new OpenApiReference {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+```
+
+---
+
+## 🔐 JWT Role-Based Auth (Configure in `Program.cs`)
+```csharp
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = "MyApp",
+            ValidAudience = "MyApp",
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("MySuperSecretKey"))
+        };
+    });
+```
+
+Use roles in controller:
+```csharp
+[Authorize(Roles = "Admin")]
+[HttpPost("admin-only")]
+public IActionResult AdminOnlyEndpoint() => Ok("Welcome Admin");
+```
+
+---
+
+## 🐳 Dockerfile
+In `MyApp.WebAPI`:
+```Dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base
+WORKDIR /app
+EXPOSE 80
+
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+WORKDIR /src
+COPY ["MyApp.WebAPI/MyApp.WebAPI.csproj", "MyApp.WebAPI/"]
+COPY ["MyApp.Application/MyApp.Application.csproj", "MyApp.Application/"]
+COPY ["MyApp.Infrastructure/MyApp.Infrastructure.csproj", "MyApp.Infrastructure/"]
+COPY ["MyApp.Domain/MyApp.Domain.csproj", "MyApp.Domain/"]
+RUN dotnet restore "MyApp.WebAPI/MyApp.WebAPI.csproj"
+COPY . .
+WORKDIR "/src/MyApp.WebAPI"
+RUN dotnet build "MyApp.WebAPI.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "MyApp.WebAPI.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "MyApp.WebAPI.dll"]
+```
+
+---
+
+
+
 
 
 
