@@ -2367,6 +2367,109 @@ jobs:
 
 ---
 
+# 📦 Full .NET Solution with Ready-to-Run Files + 🧱 Swagger, JWT Auth, Docker Setup + 🧪 Postman & CI/CD + ☁️ Azure Deploy & 🔐 Role-Secured Swagger
+
+This guide helps you bootstrap a full Clean Architecture Web API project with:
+- ✅ Working .NET 7+ Solution
+- ✅ Swagger UI with JWT Role Support
+- 🔐 JWT Role-based Authentication
+- 🐳 Docker Support
+- 🧪 Postman API Testing + E2E
+- 🚀 GitHub Actions CI/CD
+- ☁️ Azure Web App Deployment
+
+---
+
+## ☁️ Azure App Service Deployment via GitHub Actions
+`.github/workflows/azure-deploy.yml`
+```yaml
+name: Azure Web App CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+
+      - name: Restore
+        run: dotnet restore MyApp.sln
+
+      - name: Build
+        run: dotnet build MyApp.sln --no-restore
+
+      - name: Test
+        run: dotnet test MyApp.Tests --no-build
+
+      - name: Publish WebAPI
+        run: dotnet publish MyApp.WebAPI/MyApp.WebAPI.csproj -c Release -o publish
+
+      - name: Deploy to Azure
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: YOUR_APP_NAME_HERE
+          slot-name: production
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
+```
+
+To use:
+1. Go to Azure > Web App > Deployment Center > Get publish profile
+2. Add to GitHub repo secrets as `AZURE_WEBAPP_PUBLISH_PROFILE`
+
+---
+
+## 🔐 Enable JWT Support in Swagger UI
+In `Program.cs` (after `AddSwaggerGen`):
+```csharp
+builder.Services.AddSwaggerGen(opt =>
+{
+    opt.SwaggerDoc("v1", new() { Title = "MyApp API", Version = "v1" });
+    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter a valid JWT token. Format: Bearer {token}"
+    });
+    opt.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+```
+
+Use `[Authorize(Roles = "Admin")]` in controllers to restrict endpoint access.
+
+---
+
+## ✅ Final Project Checklist
+- ✅ Swagger with secure token input
+- ✅ Role-based endpoint visibility
+- ✅ Postman + E2E test coverage
+- ✅ GitHub Actions CI/CD with Azure push
+- ✅ Docker build file ready
+
+
+
 
 
 
