@@ -230,4 +230,278 @@ Methods are compiled into IL (Intermediate Language) and JIT compiled at runtime
 
 ✅ End of Stage 1.
 
+# C# Mastery Guide – Stage 2: Object-Oriented Programming (OOP)
+
+Welcome to Stage 2 of mastering C#! This section introduces the **Object-Oriented Programming** paradigm. C# is built around OOP principles which help you write clean, scalable, and reusable code.
+
+Each topic includes:
+- ✅ What it is
+- ❓ Why it's important
+- ⚙️ Syntax and structure
+- 🔧 Code examples
+- 🔗 Related concepts and best practices
+- 🧠 In-depth understanding
+
+---
+
+## 🟦 1. Classes and Objects
+
+### ✅ What:
+A class is a blueprint for creating objects. An object is an instance of a class.
+
+### ❓ Why:
+They allow you to encapsulate data and behavior together, making your code modular.
+
+### ⚙️ Syntax:
+```csharp
+public class Person
+{
+  public string Name;
+  public int Age;
+
+  public void Introduce()
+  {
+    Console.WriteLine($"Hi, I'm {Name} and I'm {Age} years old.");
+  }
+}
+```
+
+### 🔧 Example:
+```csharp
+Person p1 = new Person();
+p1.Name = "Alice";
+p1.Age = 30;
+p1.Introduce();
+```
+
+### 🔗 Related:
+`object`, `new`, `this`, `fields`, `methods`
+
+### 🧠 Deep Insight:
+Objects are stored in heap memory and referenced by pointers. Constructors are used to initialize them.
+
+---
+
+## 🟦 2. Constructors
+
+### ✅ What:
+Special methods that are called when an object is created.
+
+### ❓ Why:
+They help you initialize an object with default or custom values.
+
+### ⚙️ Syntax:
+```csharp
+public class Car
+{
+  public string Model;
+
+  public Car(string model)
+  {
+    Model = model;
+  }
+}
+```
+
+### 🔧 Example:
+```csharp
+Car myCar = new Car("Tesla Model 3");
+Console.WriteLine(myCar.Model);
+```
+
+### 🔗 Related:
+`constructor overloading`, `default constructors`, `this`, `base`
+
+### 🧠 Deep Insight:
+If no constructor is defined, a default one is provided. Constructors can be overloaded for flexibility.
+
+---
+
+## 🟦 3. Inheritance
+
+### ✅ What:
+Allows one class to inherit members (fields, methods) from another.
+
+### ❓ Why:
+Promotes code reuse and supports polymorphism.
+
+### ⚙️ Syntax:
+```csharp
+public class Animal
+{
+  public void Speak() => Console.WriteLine("Animal sound");
+}
+
+public class Dog : Animal
+{
+  public void Bark() => Console.WriteLine("Woof!");
+}
+```
+
+### 🔧 Example:
+```csharp
+Dog d = new Dog();
+d.Speak(); // Inherited
+```
+
+### 🔗 Related:
+`base`, `protected`, `virtual`, `override`
+
+### 🧠 Deep Insight:
+All classes implicitly inherit from `System.Object`. Access modifiers determine visibility of inherited members.
+
+---
+
+## 🟦 4. Polymorphism
+
+### ✅ What:
+The ability of one interface to be used for a general class of actions.
+
+### ❓ Why:
+Allows dynamic behavior — method calls behave differently depending on the object type.
+
+### ⚙️ Syntax:
+```csharp
+public class Animal
+{
+  public virtual void Speak() => Console.WriteLine("Animal sound");
+}
+
+public class Cat : Animal
+{
+  public override void Speak() => Console.WriteLine("Meow");
+}
+```
+
+### 🔧 Example:
+```csharp
+Animal myCat = new Cat();
+myCat.Speak(); // Outputs: Meow
+```
+
+### 🔗 Related:
+`virtual`, `override`, `abstract`, `interface`
+
+### 🧠 Deep Insight:
+C# uses runtime binding (via v-tables) for polymorphism. Mark methods `virtual` and use `override` to customize.
+
+---
+
+## 🟦 5. Abstraction
+
+### ✅ What:
+Hiding complex logic and exposing only the necessary parts.
+
+### ❓ Why:
+Reduces complexity and improves security and maintainability.
+
+### ⚙️ Syntax:
+```csharp
+public abstract class Shape
+{
+  public abstract double Area();
+}
+
+public class Circle : Shape
+{
+  public double Radius;
+  public Circle(double r) => Radius = r;
+  public override double Area() => Math.PI * Radius * Radius;
+}
+```
+
+### 🔧 Example:
+```csharp
+Shape s = new Circle(3);
+Console.WriteLine(s.Area());
+```
+
+### 🔗 Related:
+`abstract`, `interface`, `virtual`, `sealed`
+
+### 🧠 Deep Insight:
+Abstract classes can't be instantiated. They enforce structure but allow shared logic.
+
+---
+
+## 🟦 6. Encapsulation
+
+### ✅ What:
+Restricting direct access to class members using access modifiers and properties.
+
+### ❓ Why:
+Protects internal data and keeps object state consistent.
+
+### ⚙️ Syntax:
+```csharp
+public class BankAccount
+{
+  private decimal balance;
+
+  public void Deposit(decimal amount)
+  {
+    if (amount > 0) balance += amount;
+  }
+
+  public decimal GetBalance() => balance;
+}
+```
+
+### 🔧 Example:
+```csharp
+BankAccount acc = new BankAccount();
+acc.Deposit(1000);
+Console.WriteLine(acc.GetBalance());
+```
+
+### 🔗 Related:
+`private`, `protected`, `public`, `properties`, `get/set`
+
+### 🧠 Deep Insight:
+Properties (auto-implemented) simplify encapsulation. Use `get; private set;` to allow read-only from outside.
+
+---
+
+## 🟦 7. Interfaces
+
+### ✅ What:
+Defines a contract — a set of methods/properties that implementing classes must fulfill.
+
+### ❓ Why:
+Supports polymorphism and abstraction. Interfaces decouple code.
+
+### ⚙️ Syntax:
+```csharp
+public interface ILogger
+{
+  void Log(string message);
+}
+
+public class ConsoleLogger : ILogger
+{
+  public void Log(string message)
+  {
+    Console.WriteLine($"[LOG] {message}");
+  }
+}
+```
+
+### 🔧 Example:
+```csharp
+ILogger logger = new ConsoleLogger();
+logger.Log("Hello Interface");
+```
+
+### 🔗 Related:
+`interface`, `abstract`, `dependency injection`, `mocking`
+
+### 🧠 Deep Insight:
+Interfaces are compile-time contracts. Use them with DI (Dependency Injection) for better architecture.
+
+---
+
+✅ End of Stage 2.
+
+
+
 
