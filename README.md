@@ -1411,6 +1411,241 @@ Middleware order matters! Always place exception handling and logging early in t
 ✅ End of Stage 6.
 
 
+# C# Mastery Guide – Stage 7: Clean Architecture, CQRS, SOLID, FluentValidation & Exception Handling
+
+Welcome to Stage 7 – the professional level of C# mastery. Here we apply best practices and architecture patterns for building scalable, maintainable, and testable enterprise-grade .NET applications.
+
+In this stage you'll learn:
+- ✅ Clean Architecture Principles
+- ✅ CQRS Pattern (Command Query Responsibility Segregation)
+- ✅ SOLID Principles in Practice
+- ✅ FluentValidation for Model Validation
+- ✅ Global Exception Handling Middleware
+
+---
+
+## 🟦 1. Clean Architecture
+
+### ✅ What:
+An architecture pattern that separates the system into layers based on responsibility.
+
+### ❓ Why:
+Promotes separation of concerns, testability, and maintainability.
+
+### 🧱 Layered Structure:
+- **Domain** – Business logic & Entities
+- **Application** – Use cases, Interfaces, DTOs
+- **Infrastructure** – EF Core, File I/O, APIs
+- **Web API** – Controllers, DI, Middleware
+
+### 🔧 Example Project Structure:
+```
+MyApp
+│
+├── MyApp.Domain
+├── MyApp.Application
+├── MyApp.Infrastructure
+├── MyApp.WebApi
+```
+
+### 🔗 Related:
+`Interface segregation`, `Dependency inversion`, `Onion Architecture`
+
+### 🧠 Insight:
+Dependencies flow inward. Web API references Infrastructure & Application, but Domain stays isolated.
+
+---
+
+## 🟦 2. CQRS (Command Query Responsibility Segregation)
+
+### ✅ What:
+Split reads (queries) from writes (commands) into separate models.
+
+### ❓ Why:
+Improves scalability, separates concerns, simplifies complex business logic.
+
+### 🔧 Example:
+```csharp
+// Command
+public record CreateProductCommand(string Name) : IRequest<int>;
+
+public class CreateProductHandler : IRequestHandler<CreateProductCommand, int>
+{
+    private readonly IAppDbContext _db;
+    public CreateProductHandler(IAppDbContext db) => _db = db;
+
+    public async Task<int> Handle(CreateProductCommand request, CancellationToken ct)
+    {
+        var product = new Product { Name = request.Name };
+        _db.Products.Add(product);
+        await _db.SaveChangesAsync(ct);
+        return product.Id;
+    }
+}
+
+// Query
+public record GetProductByIdQuery(int Id) : IRequest<ProductDto>;
+
+public class GetProductByIdHandler : IRequestHandler<GetProductByIdQuery, ProductDto>
+{
+    private readonly IAppDbContext _db;
+    public GetProductByIdHandler(IAppDbContext db) => _db = db;
+
+    public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken ct)
+    {
+        var product = await _db.Products.FindAsync(request.Id);
+        return new ProductDto(product.Id, product.Name);
+    }
+}
+```
+
+### 🔗 Related:
+`MediatR`, `IRequest`, `CommandHandler`, `QueryHandler`
+
+### 🧠 Insight:
+CQRS is great with MediatR and Clean Architecture. Apply cautiously when your app benefits from separation of read/write responsibilities.
+
+---
+
+## 🟦 3. SOLID Principles
+
+### ✅ What:
+A set of five principles to write better, cleaner, scalable object-oriented code.
+
+### ❓ Why:
+Improves design quality, reduces bugs, and supports maintainability.
+
+### 🛠 Breakdown:
+- **S** – Single Responsibility Principle (1 class = 1 purpose)
+- **O** – Open/Closed Principle (open for extension, closed for modification)
+- **L** – Liskov Substitution (subtypes should replace base types)
+- **I** – Interface Segregation (prefer many specific interfaces)
+- **D** – Dependency Inversion (depend on abstractions)
+
+### 🔧 Example: SRP & DIP
+```csharp
+// BAD
+public class InvoiceService
+{
+    public void SaveToDb() { }
+    public void EmailInvoice() { }
+}
+
+// GOOD – SRP
+public class InvoiceRepository { public void Save() { } }
+public class EmailService { public void Send() { } }
+
+// GOOD – DIP
+public interface INotifier { void Notify(); }
+public class EmailNotifier : INotifier { public void Notify() { } }
+```
+
+### 🔗 Related:
+`IoC`, `Interfaces`, `DI Container`, `Abstraction`
+
+### 🧠 Insight:
+Use SOLID to decouple logic, reduce side effects, and write testable, clean code.
+
+---
+
+## 🟦 4. FluentValidation
+
+### ✅ What:
+A powerful validation library to validate models cleanly and declaratively.
+
+### ❓ Why:
+Avoids cluttering models or controllers with complex if-else checks.
+
+### ⚙️ Install:
+```bash
+Install-Package FluentValidation.AspNetCore
+```
+
+### 🔧 Example:
+```csharp
+public class ProductDto
+{
+    public string Name { get; set; }
+}
+
+public class ProductValidator : AbstractValidator<ProductDto>
+{
+    public ProductValidator()
+    {
+        RuleFor(x => x.Name)
+            .NotEmpty().WithMessage("Name is required")
+            .MaximumLength(50);
+    }
+}
+```
+
+### Register in Program.cs
+```csharp
+builder.Services.AddFluentValidationAutoValidation()
+                .AddValidatorsFromAssemblyContaining<ProductValidator>();
+```
+
+### 🔗 Related:
+`RuleFor`, `Must`, `Custom`, `CascadeMode`
+
+### 🧠 Insight:
+Use `RuleSets` for conditional logic. Validation happens automatically via filters.
+
+---
+
+## 🟦 5. Global Exception Handling Middleware
+
+### ✅ What:
+Middleware that handles all unhandled exceptions and returns standardized error responses.
+
+### ❓ Why:
+Improves reliability, consistency, and security in error handling.
+
+### 🔧 Example:
+```csharp
+public class ExceptionMiddleware : IMiddleware
+{
+    private readonly ILogger<ExceptionMiddleware> _logger;
+
+    public ExceptionMiddleware(ILogger<ExceptionMiddleware> logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        try
+        {
+            await next(context);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled Exception");
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsJsonAsync(new { error = "Something went wrong" });
+        }
+    }
+}
+```
+
+### Register Middleware
+```csharp
+builder.Services.AddTransient<ExceptionMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
+```
+
+### 🔗 Related:
+`UseMiddleware`, `ILogger`, `ProblemDetails`, `ExceptionHandler`
+
+### 🧠 Insight:
+This is the central place to log and return error responses. Use it alongside HTTP Problem Details (RFC 7807).
+
+---
+
+✅ End of Stage 7.
+
+
+
 
 
 
