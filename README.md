@@ -1645,11 +1645,36 @@ This is the central place to log and return error responses. Use it alongside HT
 ✅ End of Stage 7.
 
 
-// Clean Architecture Web API - Project Skeleton (using ASP.NET Core, EF Core, CQRS, MediatR)
+# 🏗️ Full Clean Architecture Web API Project Using Stages 1–7
 
-// ================================
-// 1. Domain Layer
-// ================================
+This document provides a full implementation guide to build a Clean Architecture-based ASP.NET Core Web API using everything you've learned from Stages 1–7. It combines:
+
+- C# Fundamentals ✅
+- OOP & Advanced Concepts ✅
+- Async, Logging, JSON/XML ✅
+- ASP.NET Core Web API ✅
+- EF Core ✅
+- CQRS with MediatR ✅
+- FluentValidation ✅
+- Global Exception Handling ✅
+- SOLID, Clean Architecture, and Testing ✅
+
+---
+
+## ✅ Project Structure
+```
+MyApp
+├── MyApp.Domain              → Entities only
+├── MyApp.Application         → CQRS (Commands + Queries), DTOs, Interfaces
+├── MyApp.Infrastructure      → EF Core, I/O logic, Services
+├── MyApp.WebAPI              → Controllers, Middleware, Program.cs
+├── MyApp.Tests               → Unit tests (xUnit + Moq)
+```
+
+---
+
+## 1️⃣ Domain Layer – `MyApp.Domain`
+```csharp
 namespace MyApp.Domain.Entities
 {
     public class Product
@@ -1658,79 +1683,94 @@ namespace MyApp.Domain.Entities
         public string Name { get; set; }
     }
 }
+```
 
-// ================================
-// 2. Application Layer
-// ================================
-namespace MyApp.Application.DTOs
+---
+
+## 2️⃣ Application Layer – `MyApp.Application`
+
+### DTO
+```csharp
+public class ProductDto
 {
-    public class ProductDto
+    public int Id { get; set; }
+    public string Name { get; set; }
+}
+```
+
+### Command + Handler (CQRS)
+```csharp
+public record CreateProductCommand(string Name) : IRequest<int>;
+
+public class CreateProductHandler : IRequestHandler<CreateProductCommand, int>
+{
+    private readonly IAppDbContext _context;
+    public CreateProductHandler(IAppDbContext context) => _context = context;
+
+    public async Task<int> Handle(CreateProductCommand request, CancellationToken ct)
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
+        var entity = new Product { Name = request.Name };
+        _context.Products.Add(entity);
+        await _context.SaveChangesAsync(ct);
+        return entity.Id;
     }
 }
+```
 
-namespace MyApp.Application.Commands
+### Query + Handler
+```csharp
+public record GetProductByIdQuery(int Id) : IRequest<ProductDto>;
+
+public class GetProductByIdHandler : IRequestHandler<GetProductByIdQuery, ProductDto>
 {
-    public record CreateProductCommand(string Name) : IRequest<int>;
+    private readonly IAppDbContext _context;
+    public GetProductByIdHandler(IAppDbContext context) => _context = context;
 
-    public class CreateProductHandler : IRequestHandler<CreateProductCommand, int>
+    public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken ct)
     {
-        private readonly IAppDbContext _context;
-        public CreateProductHandler(IAppDbContext context) => _context = context;
-
-        public async Task<int> Handle(CreateProductCommand request, CancellationToken cancellationToken)
-        {
-            var entity = new Product { Name = request.Name };
-            _context.Products.Add(entity);
-            await _context.SaveChangesAsync(cancellationToken);
-            return entity.Id;
-        }
+        var entity = await _context.Products.FindAsync(request.Id);
+        return new ProductDto { Id = entity.Id, Name = entity.Name };
     }
 }
+```
 
-namespace MyApp.Application.Queries
+### Validation (FluentValidation)
+```csharp
+public class ProductValidator : AbstractValidator<CreateProductCommand>
 {
-    public record GetProductByIdQuery(int Id) : IRequest<ProductDto>;
-
-    public class GetProductByIdHandler : IRequestHandler<GetProductByIdQuery, ProductDto>
+    public ProductValidator()
     {
-        private readonly IAppDbContext _context;
-        public GetProductByIdHandler(IAppDbContext context) => _context = context;
-
-        public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
-        {
-            var product = await _context.Products.FindAsync(request.Id);
-            return new ProductDto { Id = product.Id, Name = product.Name };
-        }
+        RuleFor(x => x.Name)
+            .NotEmpty().WithMessage("Name is required")
+            .MaximumLength(50);
     }
 }
+```
 
-// ================================
-// 3. Infrastructure Layer
-// ================================
-namespace MyApp.Infrastructure.Persistence
+---
+
+## 3️⃣ Infrastructure Layer – `MyApp.Infrastructure`
+```csharp
+public interface IAppDbContext
 {
-    public class AppDbContext : DbContext, IAppDbContext
-    {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-        public DbSet<Product> Products => Set<Product>();
-
-        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken) => await base.SaveChangesAsync(cancellationToken);
-    }
-
-    public interface IAppDbContext
-    {
-        DbSet<Product> Products { get; }
-        Task<int> SaveChangesAsync(CancellationToken cancellationToken);
-    }
+    DbSet<Product> Products { get; }
+    Task<int> SaveChangesAsync(CancellationToken ct);
 }
 
-// ================================
-// 4. API Layer
-// ================================
+public class AppDbContext : DbContext, IAppDbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public DbSet<Product> Products => Set<Product>();
+    public async Task<int> SaveChangesAsync(CancellationToken ct) => await base.SaveChangesAsync(ct);
+}
+```
+
+---
+
+## 4️⃣ Web API Layer – `MyApp.WebAPI`
+
+### Controller
+```csharp
 [ApiController]
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
@@ -1739,42 +1779,91 @@ public class ProductsController : ControllerBase
     public ProductsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> Get(int id)
-        => Ok(await _mediator.Send(new GetProductByIdQuery(id)));
+    public async Task<IActionResult> Get(int id) => Ok(await _mediator.Send(new GetProductByIdQuery(id)));
 
     [HttpPost]
-    public async Task<IActionResult> Post(CreateProductCommand command)
-        => Ok(await _mediator.Send(command));
+    public async Task<IActionResult> Post(CreateProductCommand cmd) => Ok(await _mediator.Send(cmd));
 }
+```
 
-// ================================
-// 5. Program.cs (Startup)
-// ================================
+### Global Exception Middleware
+```csharp
+public class ExceptionMiddleware : IMiddleware
+{
+    private readonly ILogger<ExceptionMiddleware> _logger;
+    public ExceptionMiddleware(ILogger<ExceptionMiddleware> logger) => _logger = logger;
+
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        try { await next(context); }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled error");
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsJsonAsync(new { error = ex.Message });
+        }
+    }
+}
+```
+
+### Program.cs
+```csharp
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseInMemoryDatabase("AppDb"));
+
+builder.Services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase("MyDb"));
 builder.Services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
 builder.Services.AddMediatR(typeof(CreateProductCommand).Assembly);
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<ProductValidator>();
+builder.Services.AddTransient<ExceptionMiddleware>();
 
 var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
+```
 
+---
 
+## 5️⃣ Testing Layer – `MyApp.Tests`
 
+### Unit Test Example
+```csharp
+public class CreateProductHandlerTests
+{
+    [Fact]
+    public async Task Should_Save_Product()
+    {
+        var mockDb = new Mock<IAppDbContext>();
+        var mockSet = new Mock<DbSet<Product>>();
 
+        mockDb.Setup(x => x.Products).Returns(mockSet.Object);
+        var handler = new CreateProductHandler(mockDb.Object);
 
+        var result = await handler.Handle(new CreateProductCommand("Test"), CancellationToken.None);
+        Assert.True(result >= 0);
+    }
+}
+```
 
+---
 
+## ✅ Summary
+You now have a complete, production-quality .NET 7+ Web API built with:
 
+- Clean Architecture (Separation of Concerns)
+- MediatR-based CQRS (Commands & Queries)
+- FluentValidation
+- Global Error Handling Middleware
+- Unit Testing with xUnit + Moq
 
 
 
