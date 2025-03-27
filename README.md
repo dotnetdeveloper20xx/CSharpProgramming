@@ -1645,6 +1645,128 @@ This is the central place to log and return error responses. Use it alongside HT
 ✅ End of Stage 7.
 
 
+// Clean Architecture Web API - Project Skeleton (using ASP.NET Core, EF Core, CQRS, MediatR)
+
+// ================================
+// 1. Domain Layer
+// ================================
+namespace MyApp.Domain.Entities
+{
+    public class Product
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+}
+
+// ================================
+// 2. Application Layer
+// ================================
+namespace MyApp.Application.DTOs
+{
+    public class ProductDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+}
+
+namespace MyApp.Application.Commands
+{
+    public record CreateProductCommand(string Name) : IRequest<int>;
+
+    public class CreateProductHandler : IRequestHandler<CreateProductCommand, int>
+    {
+        private readonly IAppDbContext _context;
+        public CreateProductHandler(IAppDbContext context) => _context = context;
+
+        public async Task<int> Handle(CreateProductCommand request, CancellationToken cancellationToken)
+        {
+            var entity = new Product { Name = request.Name };
+            _context.Products.Add(entity);
+            await _context.SaveChangesAsync(cancellationToken);
+            return entity.Id;
+        }
+    }
+}
+
+namespace MyApp.Application.Queries
+{
+    public record GetProductByIdQuery(int Id) : IRequest<ProductDto>;
+
+    public class GetProductByIdHandler : IRequestHandler<GetProductByIdQuery, ProductDto>
+    {
+        private readonly IAppDbContext _context;
+        public GetProductByIdHandler(IAppDbContext context) => _context = context;
+
+        public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
+        {
+            var product = await _context.Products.FindAsync(request.Id);
+            return new ProductDto { Id = product.Id, Name = product.Name };
+        }
+    }
+}
+
+// ================================
+// 3. Infrastructure Layer
+// ================================
+namespace MyApp.Infrastructure.Persistence
+{
+    public class AppDbContext : DbContext, IAppDbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+        public DbSet<Product> Products => Set<Product>();
+
+        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken) => await base.SaveChangesAsync(cancellationToken);
+    }
+
+    public interface IAppDbContext
+    {
+        DbSet<Product> Products { get; }
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+    }
+}
+
+// ================================
+// 4. API Layer
+// ================================
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    private readonly IMediator _mediator;
+    public ProductsController(IMediator mediator) => _mediator = mediator;
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> Get(int id)
+        => Ok(await _mediator.Send(new GetProductByIdQuery(id)));
+
+    [HttpPost]
+    public async Task<IActionResult> Post(CreateProductCommand command)
+        => Ok(await _mediator.Send(command));
+}
+
+// ================================
+// 5. Program.cs (Startup)
+// ================================
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseInMemoryDatabase("AppDb"));
+builder.Services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
+builder.Services.AddMediatR(typeof(CreateProductCommand).Assembly);
+
+var app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();
 
 
 
