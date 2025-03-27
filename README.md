@@ -502,6 +502,283 @@ Interfaces are compile-time contracts. Use them with DI (Dependency Injection) f
 
 ✅ End of Stage 2.
 
+# C# Mastery Guide – Stage 3: Advanced C# Concepts
+
+Welcome to Stage 3 of mastering C#! In this stage, we explore the **power tools** of the language that enable expressive, flexible, and high-performance applications. You’ll learn about:
+- ✅ Generics
+- ✅ Collections
+- ✅ Delegates & Events
+- ✅ Lambda Expressions
+- ✅ LINQ
+- ✅ Exception Handling
+
+Each topic includes:
+- What, Why, Syntax
+- Code Examples
+- Internal Understanding
+- Related Keywords
+
+---
+
+## 🟦 1. Generics
+
+### ✅ What:
+Generics allow you to define type-safe data structures and methods without committing to a specific data type.
+
+### ❓ Why:
+Avoid code duplication and increase reusability while ensuring type safety.
+
+### ⚙️ Syntax:
+```csharp
+public class Box<T>
+{
+    public T Value;
+    public void Display() => Console.WriteLine(Value);
+}
+```
+
+### 🔧 Examples:
+```csharp
+Box<int> intBox = new Box<int> { Value = 10 };
+Box<string> strBox = new Box<string> { Value = "Hello" };
+intBox.Display();
+strBox.Display();
+```
+
+### 🔗 Related:
+`List<T>`, `Dictionary<TKey, TValue>`, `Func<T>`, `Action<T>`, `IEnumerable<T>`
+
+### 🧠 Deep Insight:
+The CLR generates IL code at runtime for the specified type when generics are used, ensuring optimal performance without boxing.
+
+---
+
+## 🟦 2. Collections
+
+### ✅ What:
+Collections are data structures used to store groups of related objects.
+
+### ❓ Why:
+Provide flexibility in storing, retrieving, and managing multiple objects dynamically.
+
+### ⚙️ Common Types:
+- `List<T>` – ordered, resizable array
+- `Dictionary<TKey, TValue>` – key-value pair store
+- `Queue<T>` – FIFO
+- `Stack<T>` – LIFO
+
+### 🔧 Examples:
+```csharp
+List<string> names = new List<string> { "Alice", "Bob" };
+names.Add("Charlie");
+
+Dictionary<int, string> users = new Dictionary<int, string>();
+users[1] = "Admin";
+
+Queue<int> queue = new Queue<int>();
+queue.Enqueue(1);
+queue.Enqueue(2);
+
+Stack<int> stack = new Stack<int>();
+stack.Push(10);
+stack.Push(20);
+```
+
+### 🔗 Related:
+`ICollection`, `IList`, `IDictionary`, `IEnumerable`
+
+### 🧠 Deep Insight:
+Collections under the hood use arrays, hash tables, and linked lists. `List<T>` internally uses a dynamic array that doubles in size when needed.
+
+---
+
+## 🟦 3. Delegates
+
+### ✅ What:
+A delegate is a reference to a method with a specific signature.
+
+### ❓ Why:
+Allows methods to be passed as parameters (like function pointers).
+
+### ⚙️ Syntax:
+```csharp
+public delegate void MyDelegate(string message);
+
+public void Greet(string msg) => Console.WriteLine($"Hello {msg}!");
+
+MyDelegate d = Greet;
+d("World");
+```
+
+### 🔗 Related:
+`Func<>`, `Action<>`, `Predicate<>`, `Multicast Delegate`
+
+### 🧠 Deep Insight:
+Delegates are objects behind the scenes and support invocation list (multicast). They are type-safe wrappers to method pointers.
+
+---
+
+## 🟦 4. Events
+
+### ✅ What:
+Events are special delegates used to signal state changes or notify subscribers.
+
+### ❓ Why:
+They allow a publisher-subscriber model (used in GUIs, event-driven systems).
+
+### ⚙️ Syntax:
+```csharp
+public event EventHandler OnDataReceived;
+
+protected void RaiseEvent()
+{
+    OnDataReceived?.Invoke(this, EventArgs.Empty);
+}
+```
+
+### 🔧 Example:
+```csharp
+class Notifier
+{
+    public event Action<string> OnNotify;
+    public void Trigger(string msg) => OnNotify?.Invoke(msg);
+}
+
+Notifier n = new Notifier();
+n.OnNotify += (m) => Console.WriteLine($"Received: {m}");
+n.Trigger("Hello Events");
+```
+
+### 🔗 Related:
+`EventHandler<T>`, `+=`, `-=`, `null check`, `multicast`
+
+### 🧠 Deep Insight:
+Events encapsulate a delegate field and limit access. You can only invoke from inside the defining class.
+
+---
+
+## 🟦 5. Lambda Expressions
+
+### ✅ What:
+Shorthand for defining anonymous functions.
+
+### ❓ Why:
+Used heavily with LINQ, delegates, and event subscriptions.
+
+### ⚙️ Syntax:
+```csharp
+(parameters) => expression_or_block
+```
+
+### 🔧 Examples:
+```csharp
+Func<int, int> square = x => x * x;
+Console.WriteLine(square(5)); // 25
+
+Action<string> greet = name => Console.WriteLine($"Hi {name}");
+greet("Alice");
+
+Predicate<int> isEven = n => n % 2 == 0;
+Console.WriteLine(isEven(4)); // true
+```
+
+### 🔗 Related:
+`Func<>`, `Action<>`, `Predicate<>`, `LINQ`
+
+### 🧠 Deep Insight:
+Lambdas compile to hidden delegate classes or expression trees. They enable functional-style programming.
+
+---
+
+## 🟦 6. LINQ (Language Integrated Query)
+
+### ✅ What:
+Query language embedded in C# to manipulate collections, databases, XML, and more.
+
+### ❓ Why:
+Powerful and readable syntax for filtering, transforming, and aggregating data.
+
+### ⚙️ Syntax:
+```csharp
+var result = from x in collection
+             where x > 5
+             select x;
+
+// or
+var result = collection.Where(x => x > 5).Select(x => x);
+```
+
+### 🔧 Examples:
+```csharp
+List<int> numbers = new List<int> { 1, 2, 3, 4, 5 };
+var even = numbers.Where(n => n % 2 == 0);
+
+var names = new[] { "Alice", "Bob", "Charlie" };
+var filtered = from n in names where n.StartsWith("A") select n;
+
+var sum = numbers.Sum();
+```
+
+### 🔗 Related:
+`IEnumerable`, `IQueryable`, `Select`, `Where`, `Aggregate`, `GroupBy`, `Join`
+
+### 🧠 Deep Insight:
+LINQ uses deferred execution — the query is only executed when enumerated. `IQueryable` is for LINQ-to-SQL and remote providers.
+
+---
+
+## 🟦 7. Exception Handling
+
+### ✅ What:
+A structured mechanism to handle runtime errors.
+
+### ❓ Why:
+Ensures your application can gracefully recover or log issues.
+
+### ⚙️ Syntax:
+```csharp
+try
+{
+    // code that may throw
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+}
+finally
+{
+    // cleanup
+}
+```
+
+### 🔧 Examples:
+```csharp
+try
+{
+    int x = int.Parse("abc");
+}
+catch (FormatException ex)
+{
+    Console.WriteLine($"Invalid number: {ex.Message}");
+}
+finally
+{
+    Console.WriteLine("Done");
+}
+```
+
+### 🔗 Related:
+`throw`, `try`, `catch`, `finally`, `Exception`, `custom exceptions`
+
+### 🧠 Deep Insight:
+Exceptions bubble up the call stack until caught. Avoid using them for flow control. Use `when` filter for targeted exception catching.
+
+---
+
+✅ End of Stage 3.
+
+
+
 
 
 
